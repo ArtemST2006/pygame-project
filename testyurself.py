@@ -63,6 +63,7 @@ class Player(pygame.sprite.Sprite):
         self.jump = 0
         self.fixed = False
         self.count = 0
+        self.count_jump = 0
 
 
     def update(self):
@@ -75,9 +76,6 @@ class Player(pygame.sprite.Sprite):
 
         elif keys[pygame.K_RIGHT]:
             dx += 10
-
-        if keys[pygame.K_SPACE]:
-            self.jump = -20
 
         self.jump += 3
         if self.jump > 20:
@@ -93,6 +91,7 @@ class Player(pygame.sprite.Sprite):
                         dy = sprite.rect.bottom - self.rect.top
                         self.jump = 0
                     elif self.jump >= 0:
+                        self.count_jump = 0
                         dy = sprite.rect.top - self.rect.bottom
 
         self.rect.x += dx
@@ -144,7 +143,7 @@ if __name__ == '__main__':
 
     camera = Camera()
     clock = pygame.time.Clock()
-    FPS = 240
+    FPS = 120
 
     running = True
     while running:
@@ -152,6 +151,10 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and player.count_jump < 2:
+                    player.count_jump += 1
+                    player.jump = -20
 
         player.update()
         x_fon_after = player.rect.x
