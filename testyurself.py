@@ -21,17 +21,17 @@ def generate_level(level):
                 new_player = Player(x * 50, 750 - (y * 50))
             elif level[y][x] == '#':
                 Platform(x * 50, 750 - (y * 50))
-    return new_player, x, y, len(level[0]) * 50
+    return new_player, x, y, len(max(level, key=len))
 
 
 def load_level(filename):
     filename = "data/" + filename
     with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
+        level_map = [line for line in mapFile]
     #подсчитываем максимальную длину
     max_width = max(map(len, level_map))
 
-    return list(map(lambda x: x.ljust(max_width, ' '), level_map))
+    return level_map
 
 
 def load_image(name, colorkey=None):
@@ -61,9 +61,9 @@ class Player(pygame.sprite.Sprite):
         self.width = self.image.get_width()
         self.height = self. image.get_height()
         self.jump = 0
-        self.fixed = False
         self.count = 0
         self.count_jump = 0
+        self.camera_fixed = False
 
 
     def update(self):
@@ -96,11 +96,22 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.x += dx
         self.rect.y += dy
-        if self.rect.x == 700:
-            self.fixed = True
 
-        if self.fixed:
+        self.camera(dx)
+
+    def camera(self, dx):
+        global left_border, right_border
+        left_border += dx
+        right_border -= dx
+
+        if left_border <= 700 or right_border <= 700:
+            self.camera_fixed = False
+        else:
+            self.camera_fixed = True
+
+        if self.camera_fixed:
             camera.dx = dx
+
 
 
 class Platform(pygame.sprite.Sprite):
@@ -125,7 +136,7 @@ class Camera:
 
 if __name__ == '__main__':
     pygame.init()
-    size = width, height = 1400, 800
+    size = width, height = 1400, 750
     screen = pygame.display.set_mode(size)
 
     all_sprites = pygame.sprite.Group() # все спрайты
@@ -137,9 +148,12 @@ if __name__ == '__main__':
     fon_1 = load_image('fon-1.png')
     fon_2 = load_image('fon-2.png')
     background_animation = 0
-    background_animation_pole = 0
+    background_animation_pole_x = 0
+    background_animation_pole_y = 0
 
-    player, level_x, level_y, weight_map = generate_level(load_level('map.txt'))
+    player, level_x, level_y, weight_map,  = generate_level(load_level('map.txt'))
+    left_border = player.rect.x
+    right_border = weight_map * 50 - player.rect.x - 50
 
     camera = Camera()
     clock = pygame.time.Clock()
@@ -147,6 +161,7 @@ if __name__ == '__main__':
 
     running = True
     while running:
+        print(background_animation_pole_y)
         x_fon = player.rect.x
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -157,19 +172,27 @@ if __name__ == '__main__':
                     player.jump = -20
 
         player.update()
-        x_fon_after = player.rect.x
-        anim_bg = x_fon - x_fon_after
 
         # установка заднего фона
-        screen.blit(fon_1, (background_animation_pole, 0))
-        screen.blit(fon_1, (background_animation_pole + 1400, 0))
+        x_fon_after = player.rect.x
+        anim_bg_x = x_fon - x_fon_after
+
+        if camera.dy < 0: # vniz
+            if not background_animation_pole_y + 1 >= 10:
+                background_animation_pole_y += 1
+        if camera.dy > 0: # vverh
+            if not background_animation_pole_y - 1 <= -10:
+                background_animation_pole_y -= 1
+
+        screen.blit(fon_1, (background_animation_pole_x, background_animation_pole_y))
+        screen.blit(fon_1, (background_animation_pole_x + 1400, background_animation_pole_y))
         screen.blit(fon_2, (background_animation, 0))
         screen.blit(fon_2, (background_animation + 1400, 0))
         background_animation -= 1
-        background_animation_pole += anim_bg // 5
+        background_animation_pole_x += anim_bg_x //10
         if background_animation == -1400:
             background_animation = 0
-        if background_animation_pole == -1400:
+        if background_animation_pole_x == -1400:
             background_animation_pole = 0
 
         camera.update(player)
