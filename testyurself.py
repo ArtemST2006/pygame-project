@@ -3,7 +3,6 @@ import os
 import sys
 import random
 
-
 pygame.init()
 size = width, height = 1400, 750
 screen = pygame.display.set_mode(size)
@@ -28,6 +27,8 @@ def generate_level(level):
                 Platform(x * 50, 750 - (y * 50))
             elif level[y][x] == '*':
                 Obstacles('ship', x * 50, 750 - (y * 50))
+            elif level[y][x] == '!':
+                Enemy(x * 50, 750 - (y * 50))
     return new_player, x, y, len(max(level, key=len))
 
 
@@ -35,7 +36,7 @@ def load_level(filename):
     filename = "data/" + filename
     with open(filename, 'r') as mapFile:
         level_map = [line for line in mapFile]
-    #подсчитываем максимальную длину
+    # подсчитываем максимальную длину
     max_width = max(map(len, level_map))
 
     return level_map
@@ -72,7 +73,7 @@ class Particle(pygame.sprite.Sprite):
         fire.append(pygame.transform.scale(fire[0], (scale, scale)))
 
     def __init__(self, pos, dx, dy):
-        super().__init__(death)
+        super().__init__(death, all_sprites)
         self.image = random.choice(self.fire)
         self.rect = self.image.get_rect()
 
@@ -100,24 +101,24 @@ class Obstacles(pygame.sprite.Sprite):
         self.image = load_image(OBSTACLES[name])
         if name == 'ship':
             self.image = pygame.transform.scale(self.image, (50, 40))
-            self.rect = self.image.get_rect().move(x, y+20)
+            self.rect = self.image.get_rect().move(x, y + 20)
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(all_sprites, player_sprite)
-        self.image = A_PLAYER_R[0]
-        self.image = pygame.transform.scale(self.image, (50, 50))
+        self.stop = pygame.transform.scale(load_image('stop_player.png'), (50, 46))
+        self.image = self.stop
         self.rect = self.image.get_rect().move(x, y)
         self.jumpfly = False
         self.start_y = y
         self.width = self.image.get_width()
-        self.height = self. image.get_height()
+        self.height = self.image.get_height()
         self.jump = 0
         self.count = 0
-        self.count_2 = 0
         self.count_jump = 0
         self.camera_fixed = False
+        self.left = False
         self.left = False
 
     def update(self):
@@ -129,12 +130,17 @@ class Player(pygame.sprite.Sprite):
             dx += -10
             self.count += 1
             self.image = A_PLAYER_L[self.count % len(A_PLAYER_L)]
-            self.image = pygame.transform.scale(self.image, (50, 50))
+            self.left = True
         elif keys[pygame.K_RIGHT]:
             dx += 10
             self.count += 1
             self.image = A_PLAYER_R[self.count % len(A_PLAYER_R)]
-            self.image = pygame.transform.scale(self.image, (50, 50))
+            self.left = False
+        else:
+            if self.left:
+                self.image = self.stop
+            else:
+                self.image = pygame.transform.flip(self.stop, True, False)
 
         self.jump += 3
         if self.jump > 20:
@@ -143,7 +149,8 @@ class Player(pygame.sprite.Sprite):
 
         for sprite in platform_sprites:
             if sprite not in player_sprite:
-                if sprite.rect.colliderect(self.rect.x + dx, self.rect.y, self.width, self.height): # камера с левого и правого угла
+                if sprite.rect.colliderect(self.rect.x + dx, self.rect.y, self.width,
+                                           self.height):  # камера с левого и правого угла
                     dx = 0
                 if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                     if self.jump < 0:
@@ -152,6 +159,7 @@ class Player(pygame.sprite.Sprite):
                     elif self.jump >= 0:
                         self.count_jump = 0
                         dy = sprite.rect.top - self.rect.bottom
+                        self.jumpfly = False
 
         self.rect.x += dx
         self.rect.y += dy
@@ -170,6 +178,59 @@ class Player(pygame.sprite.Sprite):
 
         if self.camera_fixed:
             camera.dx = dx
+
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(enemy_sprites, all_sprites)
+        self.count = 0
+        self.left = False
+        self.make_image()
+        self.rect = self.image.get_rect().move(x, y - 20)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.dx = 0
+
+    def make_image(self):
+        self.count += 1
+        if self.left:
+            self.image = ZOMBIE_L[self.count % len(ZOMBIE_L)]
+        else:
+            self.image = ZOMBIE_R[self.count % len(ZOMBIE_R)]
+
+    def update(self):
+        dy = 8
+        x_hero = player.rect.x
+        x_zombie = self.rect.x
+
+        if not player.jumpfly:
+            if abs(x_hero - x_zombie) < 500:
+                self.dx = 6
+            else:
+                self.dx = 0
+
+            if x_hero < x_zombie:
+                self.dx = -self.dx
+                self.left = True
+            else:
+                self.left = False
+        else:
+            self.dx = self.dx
+
+        for sprite in platform_sprites:
+            if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                dy = sprite.rect.top - self.rect.bottom
+            if sprite.rect.colliderect(self.rect.x + self.dx, self.rect.y, self.width, self.height):
+                pass
+        if pygame.sprite.spritecollideany(self, obstacles_sprites):
+            self.kill()
+            create_particles((self.rect.x, self.rect.y))
+
+        if self.dx != 0:
+            self.make_image()
+
+        self.rect.y += dy
+        self.rect.x += self.dx
 
 
 class Platform(pygame.sprite.Sprite):
@@ -200,24 +261,39 @@ def cut_sheet(sheet, columns, rows):
     height_img = img.get_height() // rows
     for j in range(rows):
         for i in range(columns):
-            frame_location = i * width_img, j*height_img
+            frame_location = i * width_img, j * height_img
             size = width_img, height_img
             img_new = img.subsurface(pygame.Rect(frame_location, size))
+            img_new = pygame.transform.scale(img_new, (50, 50))
+            img_new = img_new.subsurface(pygame.Rect((0, 0), (50, 46)))
             lis.append(img_new)
             lis2.append(pygame.transform.flip(img_new, True, False))
     return lis, lis2
+
+
+def make_zombie():
+    lis = []
+    lis2 = []
+    for i in range(1, 8):
+        img = load_image(f'antiHero/anti_hero{i}.png')
+        img = pygame.transform.scale(img, (46, 50))
+        lis.append(img)
+        lis2.append(pygame.transform.flip(img, True, False))
+    return lis, lis2
+
 
 if __name__ == '__main__':
     OBSTACLES = {'ship': 'ship.png'}
     GRAVITY = 1
     A_PLAYER_R, A_PLAYER_L = cut_sheet('player.png', 5, 2)
+    ZOMBIE_R, ZOMBIE_L = make_zombie()
 
-    all_sprites = pygame.sprite.Group() # все спрайты
-    player_sprite = pygame.sprite.Group() # игрок
+    all_sprites = pygame.sprite.Group()  # все спрайты
+    player_sprite = pygame.sprite.Group()  # игрок
     platform_sprites = pygame.sprite.Group()  # поверхности
     obstacles_sprites = pygame.sprite.Group()  # препятствия
     enemy_sprites = pygame.sprite.Group()  # враги
-    death = pygame.sprite.Group() # star
+    death = pygame.sprite.Group()  # star
 
     fon_1 = load_image('fon-1.png')
     fon_2 = load_image('fon-2.png')
@@ -225,7 +301,7 @@ if __name__ == '__main__':
     background_animation_pole_x = 0
     background_animation_pole_y = 0
 
-    player, level_x, level_y, weight_map,  = generate_level(load_level('map.txt'))
+    player, level_x, level_y, weight_map, = generate_level(load_level('map.txt'))
     left_border = player.rect.x
     right_border = weight_map * 50 - player.rect.x - 50
 
@@ -237,7 +313,9 @@ if __name__ == '__main__':
     running = True
     while running:
         # установка флага
-        if pygame.sprite.spritecollideany(player, obstacles_sprites) and game:
+        if (pygame.sprite.spritecollideany(player, obstacles_sprites) or pygame.sprite.spritecollideany(player,
+                                                                                                        enemy_sprites)) and game:
+            player.kill()
             game = False
             create_particles((player.rect.x, player.rect.y))
             count = 0
@@ -247,10 +325,11 @@ if __name__ == '__main__':
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and player.count_jump < 2:
+                    player.jumpfly = True
                     player.count_jump += 1
                     player.jump = -20
         x_fon = player.rect.x
-        player.update()
+        all_sprites.update()
 
         # установка заднего фона
         x_fon_after = player.rect.x
@@ -274,21 +353,15 @@ if __name__ == '__main__':
         if background_animation_pole_x == -1400:
             background_animation_pole = 0
 
-        if game:
-            camera.update(player)
-            for sprite in all_sprites:
-                camera.apply(sprite)
+        camera.update(player)
+        for sprite in all_sprites:
+            camera.apply(sprite)
 
-            all_sprites.draw(screen)
-            camera.dx = 0
-        else:
-            death.update()
-            platform_sprites.draw(screen)
-            obstacles_sprites.draw(screen)
-            enemy_sprites.draw(screen)
-            death.draw(screen)
+        all_sprites.draw(screen)
+        camera.dx = 0
+        if not game:
             count += 1
-            if count > 50: # меню
+            if count > 50:  # меню
                 print('end')
                 pass
 
