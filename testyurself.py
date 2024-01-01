@@ -3,6 +3,7 @@ import os
 import sys
 import random
 
+pygame.mixer.pre_init(44100, -16, 1, 512)  # для воспроизведения без задержки
 pygame.init()
 size = width, height = 1400, 750
 screen = pygame.display.set_mode(size)
@@ -29,6 +30,9 @@ def generate_level(level):
                 Obstacles('ship', x * 50, 750 - (y * 50))
             elif level[y][x] == '!':
                 Enemy(x * 50, 750 - (y * 50))
+            elif level[y][x] == '+':
+                Win(x * 50, 750 - (y * 50))
+
     return new_player, x, y, len(max(level, key=len))
 
 
@@ -59,22 +63,63 @@ def load_image(name, colorkey=None):
     return image
 
 
-def create_particles(position):
+def load_sound_little(name):
+    try:
+        fullname = os.path.join('data', name)
+        if not os.path.isfile(fullname):
+            print('error')
+            sys.exit()
+
+        return pygame.mixer.Sound(fullname)
+    except Exception:
+        return None
+
+
+def load_music(name):
+    try:
+        fullname = os.path.join('data', name)
+        if not os.path.isfile(fullname):
+            print('error')
+            sys.exit()
+
+        pygame.mixer.music.load(fullname)
+    except Exception:
+        return
+
+
+def play_music(k):
+    if k == 1:
+        pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(0.5)
+    elif k == 2:
+        pygame.mixer.music.pause()
+    elif k == -2:
+        pygame.mixer.music.unpause()
+    elif k == 0:
+        pygame.mixer.music.stop()
+
+
+def create_particles(k, position):
     particle_count = 20
     numbers = range(-10, 15)
     for _ in range(particle_count):
-        Particle(position, random.choice(numbers), random.choice(numbers))
+        Particle(position, random.choice(numbers), random.choice(numbers), k)
 
 
 class Particle(pygame.sprite.Sprite):
     # сгенерируем частицы разного размера
     fire = [load_image('star.png')]
+    maso = [pygame.transform.scale(load_image('maso.png'), (20, 20))]
     for scale in (10, 25, 35):
         fire.append(pygame.transform.scale(fire[0], (scale, scale)))
+        maso.append(pygame.transform.scale(maso[0], (scale, scale)))
 
-    def __init__(self, pos, dx, dy):
+    def __init__(self, pos, dx, dy, k):
         super().__init__(death, all_sprites)
-        self.image = random.choice(self.fire)
+        if k == 'win':
+            self.image = random.choice(self.fire)
+        else:
+            self.image = random.choice(self.maso)
         self.rect = self.image.get_rect()
 
         self.velocity = [dx, dy]
@@ -221,12 +266,13 @@ class Enemy(pygame.sprite.Sprite):
             if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                 dy = sprite.rect.top - self.rect.bottom
             if sprite.rect.colliderect(self.rect.x + self.dx, self.rect.y, self.width, self.height):
-                pass
+                self.dx = 0
         if pygame.sprite.spritecollideany(self, obstacles_sprites):
             self.kill()
-            create_particles((self.rect.x, self.rect.y))
+            death_ship_sound.play()
+            create_particles('death', (self.rect.x, self.rect.y))
 
-        if self.dx != 0:
+        if abs(x_hero - x_zombie) < 500:
             self.make_image()
 
         self.rect.y += dy
@@ -237,6 +283,14 @@ class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(platform_sprites, all_sprites)
         self.image = load_image('zelma.png')
+        self.rect = self.image.get_rect().move(x, y)
+
+
+class Win(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(win_pos, all_sprites)
+        self.image = load_image('flag.png')
+        self.image = pygame.transform.scale(self.image, (50, 50))
         self.rect = self.image.get_rect().move(x, y)
 
 
@@ -283,6 +337,12 @@ def make_zombie():
 
 
 if __name__ == '__main__':
+    load_music('sounds/all_music_fon.mp3')
+    death_ship_sound = load_sound_little('sounds/death_of_ship.ogg')
+    jump_sound = load_sound_little('sounds/prijoc.ogg')
+    game_won = load_sound_little('sounds/game-won.ogg')
+    play_music(1)
+
     OBSTACLES = {'ship': 'ship.png'}
     GRAVITY = 1
     A_PLAYER_R, A_PLAYER_L = cut_sheet('player.png', 5, 2)
@@ -294,6 +354,7 @@ if __name__ == '__main__':
     obstacles_sprites = pygame.sprite.Group()  # препятствия
     enemy_sprites = pygame.sprite.Group()  # враги
     death = pygame.sprite.Group()  # star
+    win_pos = pygame.sprite.Group()
 
     fon_1 = load_image('fon-1.png')
     fon_2 = load_image('fon-2.png')
@@ -313,11 +374,18 @@ if __name__ == '__main__':
     running = True
     while running:
         # установка флага
-        if (pygame.sprite.spritecollideany(player, obstacles_sprites) or pygame.sprite.spritecollideany(player,
-                                                                                                        enemy_sprites)) and game:
+        if (pygame.sprite.spritecollideany(player, obstacles_sprites) or
+                pygame.sprite.spritecollideany(player, enemy_sprites)) and game:
+            death_ship_sound.play()
             player.kill()
             game = False
-            create_particles((player.rect.x, player.rect.y))
+            create_particles('death', (player.rect.x, player.rect.y))
+            count = 0
+        if pygame.sprite.spritecollideany(player, win_pos) and game:
+            game_won.play()
+            player.kill()
+            game = False
+            create_particles('win', (player.rect.x, player.rect.y))
             count = 0
 
         for event in pygame.event.get():
@@ -325,6 +393,7 @@ if __name__ == '__main__':
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and player.count_jump < 2:
+                    jump_sound.play()
                     player.jumpfly = True
                     player.count_jump += 1
                     player.jump = -20
@@ -358,11 +427,11 @@ if __name__ == '__main__':
             camera.apply(sprite)
 
         all_sprites.draw(screen)
+
         camera.dx = 0
         if not game:
             count += 1
-            if count > 50:  # меню
-                print('end')
+            if count > 50:  # выход меню
                 pass
 
         pygame.display.flip()
