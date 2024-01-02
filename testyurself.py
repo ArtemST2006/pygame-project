@@ -24,14 +24,51 @@ def generate_level(level):
         for x in range(len(level[y])):
             if level[y][x] == '@':
                 new_player = Player(x * 50, 750 - (y * 50))
+
             elif level[y][x] == '#':
-                Platform(x * 50, 750 - (y * 50))
+                try:
+                    if level[y + 1][x] != '#' or level[y + 1][x] == '*':
+                        Platform(x * 50, 750 - (y * 50), 'trava')
+                    else:
+                        Platform(x * 50, 750 - (y * 50), 'zelma')
+                except Exception:
+                    Platform(x * 50, 750 - (y * 50), 'zelma')
+
             elif level[y][x] == '*':
                 Obstacles('ship', x * 50, 750 - (y * 50))
+
             elif level[y][x] == '!':
-                Enemy(x * 50, 750 - (y * 50))
+                EnemyZombie(x * 50, 750 - (y * 50))
+
+            elif level[y][x] == '0':
+                EnemyBublic(x * 50, 750 - (y * 50))
+
             elif level[y][x] == '+':
                 Win(x * 50, 750 - (y * 50))
+
+            elif level[y][x] == '5':
+                Gain(x * 50, 750 - (y * 50), level[y][x])
+
+            elif level[y][x] == '1':
+                Star(x * 50, 750 - (y * 50), level[y][x])
+
+            elif level[y][x] == '&':
+                try:
+                    if level[y][x - 1] == '#':
+                        EnemyPush(x * 50, 750 - (y * 50), 'right')
+                    else:
+                        EnemyPush(x * 50, 750 - (y * 50), 'left')
+                except Exception:
+                    pass
+
+            elif level[y][x] == '^':
+                try:
+                    if level[y + 1][x] == '#':
+                        EnemyPush(x * 50, 750 - (y * 50), 'botton')
+                    else:
+                        EnemyPush(x * 50, 750 - (y * 50), 'top')
+                except Exception:
+                    pass
 
     return new_player, x, y, len(max(level, key=len))
 
@@ -143,7 +180,7 @@ class Particle(pygame.sprite.Sprite):
 class Obstacles(pygame.sprite.Sprite):
     def __init__(self, name, x, y):
         super().__init__(all_sprites, obstacles_sprites)
-        self.image = load_image(OBSTACLES[name])
+        self.image = load_image(BLOCK[name])
         if name == 'ship':
             self.image = pygame.transform.scale(self.image, (50, 40))
             self.rect = self.image.get_rect().move(x, y + 20)
@@ -164,7 +201,9 @@ class Player(pygame.sprite.Sprite):
         self.count_jump = 0
         self.camera_fixed = False
         self.left = False
-        self.left = False
+        self.is_gain = False
+        self.count_gain = 0
+        self.count_star = 0
 
     def update(self):
         dx = 0
@@ -188,14 +227,14 @@ class Player(pygame.sprite.Sprite):
                 self.image = pygame.transform.flip(self.stop, True, False)
 
         self.jump += 3
-        if self.jump > 20:
-            self.jump = 20
+        if self.jump > 30:
+            self.jump = 30
         dy += self.jump
 
         for sprite in platform_sprites:
             if sprite not in player_sprite:
                 if sprite.rect.colliderect(self.rect.x + dx, self.rect.y, self.width,
-                                           self.height):  # камера с левого и правого угла
+                                           self.height):
                     dx = 0
                 if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                     if self.jump < 0:
@@ -205,6 +244,23 @@ class Player(pygame.sprite.Sprite):
                         self.count_jump = 0
                         dy = sprite.rect.top - self.rect.bottom
                         self.jumpfly = False
+
+        for sprite in gain_sprites:
+            if sprite.rect.colliderect(self.rect.x, self.rect.y, self.width, self.height):
+                sprite.kill()
+                self.is_gain = True
+                self.count_gain = 0
+
+        for sprite in star_point:
+            if sprite.rect.colliderect(self.rect.x, self.rect.y, self.width, self.height):
+                sprite.kill()
+                self.count_star += 1
+
+        if self.is_gain:
+            self.count_gain += 1
+        if self.count_gain > 200:
+            self.is_gain = False
+            self.count_gain = 0
 
         self.rect.x += dx
         self.rect.y += dy
@@ -225,9 +281,9 @@ class Player(pygame.sprite.Sprite):
             camera.dx = dx
 
 
-class Enemy(pygame.sprite.Sprite):
+class EnemyZombie(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(enemy_sprites, all_sprites)
+        super().__init__(enemy_sprites, all_sprites, zombie_sprites)
         self.count = 0
         self.left = False
         self.make_image()
@@ -279,19 +335,119 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x += self.dx
 
 
-class Platform(pygame.sprite.Sprite):
+class EnemyBublic(pygame.sprite.Sprite):
     def __init__(self, x, y):
+        super().__init__(all_sprites, enemy_sprites, bublic_sprites)
+        self.image = pygame.transform.scale(load_image(BLOCK['bublic']), (50, 50))
+        self.rect = self.image.get_rect().move(x, y)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.left = False
+
+    def update(self):
+        dx = 11
+
+        if self.left:
+            dx = -10
+
+        for sprite in platform_sprites:
+            if sprite.rect.colliderect(self.rect.x + dx, self.rect.y, self.width,
+                                        self.height):  # камера с левого и правого угла
+                dx = 0
+                self.left = not self.left
+
+        self.rect.x += dx
+
+
+class EnemyPush(pygame.sprite.Sprite):
+    def __init__(self, x, y, name):
+        super().__init__(enemy_sprites, all_sprites)
+        self.dx = 0
+        self.dy = 0
+
+        if name == 'left':
+            self.image = load_image(BLOCK['push'])
+            self.dx = - 10
+        elif name == 'right':
+            self.dx = 10
+            self.image = pygame.transform.flip(load_image(BLOCK['push']), True, False)
+        elif name == 'top':
+            self.image = load_image(BLOCK['push'])
+            self.dy = -10
+        else:
+            self.image = load_image(BLOCK['push'])
+            self.dy = 10
+
+        self.image = pygame.transform.scale(self.image, (50, 50))
+        self.rect = self.image.get_rect().move(x, y)
+        self.count = 0
+        self.x, self.y = x, y
+
+    def update(self):
+        self.count += 1
+        if self.count % 40 == 0:
+            self.make_pul()
+
+    def make_pul(self):
+        Pulka(self.rect.x, self.rect.y, self.dx, self.dy)
+
+
+class Pulka(pygame.sprite.Sprite):
+    def __init__(self, x, y, dx, dy):
+        super().__init__(enemy_sprites, pulki)
+        self.dx = dx
+        self.dy = dy
+        self.image = load_image(BLOCK['pulka'])
+        self.image = pygame.transform.scale(self.image, (20, 15))
+        self.rect = self.image.get_rect().move(x + 25, y + 25)
+        self.count = 0
+
+    def update(self):
+        self.rect.x += self.dx
+        self.rect.y += self.dy
+
+        if pygame.sprite.spritecollideany(self, platform_sprites):
+            self.kill()
+
+
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, x, y, name):
         super().__init__(platform_sprites, all_sprites)
-        self.image = load_image('zelma.png')
+        self.image = load_image(BLOCK[name])
         self.rect = self.image.get_rect().move(x, y)
 
 
 class Win(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(win_pos, all_sprites)
-        self.image = load_image('flag.png')
+        self.image = load_image(BLOCK['flag'])
         self.image = pygame.transform.scale(self.image, (50, 50))
         self.rect = self.image.get_rect().move(x, y)
+
+
+class Gain(pygame.sprite.Sprite):
+    def __init__(self, x, y, name):
+        super().__init__(all_sprites, gain_sprites)
+        self.image = load_image(BLOCK[name])
+        self.image = pygame.transform.scale(self.image, (40, 40))
+        self.rect = self.image.get_rect().move(x + 10, y - 10)
+        self.count = 0
+
+        if name == '5':
+            gain_big_jump.add(self)
+
+    def update(self):
+        self.count += 1
+        if self.count % 4 == 0:
+            self.rect.y += random.choice([1, -1])
+
+
+class Star(pygame.sprite.Sprite):
+    def __init__(self, x, y, name):
+        super().__init__(all_sprites, star_point)
+        self.image = load_image(BLOCK[name])
+        self.image = pygame.transform.scale(self.image, (40, 40))
+        self.rect = self.image.get_rect().move(x + 10, y)
 
 
 class Camera:
@@ -343,7 +499,11 @@ if __name__ == '__main__':
     game_won = load_sound_little('sounds/game-won.ogg')
     play_music(1)
 
-    OBSTACLES = {'ship': 'ship.png'}
+    BLOCK = {'ship': 'ship.png', 'trava': 'trava.png',
+             'zelma': 'zelma.png', '5': 'gain/big_jump.png',
+             '1': 'star.png', 'push': 'pusha/push.png',
+             'flag': 'flag.png', 'bublic': 'bublic/bublic1.png',
+             'pulka': 'pusha/pulka.png'}
     GRAVITY = 1
     A_PLAYER_R, A_PLAYER_L = cut_sheet('player.png', 5, 2)
     ZOMBIE_R, ZOMBIE_L = make_zombie()
@@ -353,8 +513,15 @@ if __name__ == '__main__':
     platform_sprites = pygame.sprite.Group()  # поверхности
     obstacles_sprites = pygame.sprite.Group()  # препятствия
     enemy_sprites = pygame.sprite.Group()  # враги
+    zombie_sprites = pygame.sprite.Group()  # зомби
+    bublic_sprites = pygame.sprite.Group()  # бублик враг
+    puska_sprites = pygame.sprite.Group()  # пушка
+    pulki = pygame.sprite.Group()
     death = pygame.sprite.Group()  # star
     win_pos = pygame.sprite.Group()
+    star_point = pygame.sprite.Group()
+    gain_sprites = pygame.sprite.Group()  # все усиления
+    gain_big_jump = pygame.sprite.Group()
 
     fon_1 = load_image('fon-1.png')
     fon_2 = load_image('fon-2.png')
@@ -396,7 +563,11 @@ if __name__ == '__main__':
                     jump_sound.play()
                     player.jumpfly = True
                     player.count_jump += 1
-                    player.jump = -20
+                    if player.is_gain:
+                        player.jump = -30
+                    else:
+                        player.jump = -20
+
         x_fon = player.rect.x
         all_sprites.update()
 
@@ -425,7 +596,10 @@ if __name__ == '__main__':
         camera.update(player)
         for sprite in all_sprites:
             camera.apply(sprite)
-
+        for sp in pulki:
+            camera.apply(sp)
+        pulki.update()
+        pulki.draw(screen)
         all_sprites.draw(screen)
 
         camera.dx = 0
