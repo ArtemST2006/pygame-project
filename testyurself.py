@@ -256,6 +256,12 @@ class Player(pygame.sprite.Sprite):
                 sprite.kill()
                 self.count_star += 1
 
+        for sprite in bublic_sprites:
+            if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                death_ship_sound.play()
+                create_particles('death', (sprite.rect.x, sprite.rect.y))
+                sprite.kill()
+
         if self.is_gain:
             self.count_gain += 1
         if self.count_gain > 200:
