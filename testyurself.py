@@ -607,7 +607,7 @@ if __name__ == '__main__':
         pulki.update()
         pulki.draw(screen)
         all_sprites.draw(screen)
-
+        count = 0
         camera.dx = 0
         if not game:
             count += 1
