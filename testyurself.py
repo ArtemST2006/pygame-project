@@ -210,12 +210,12 @@ class Player(pygame.sprite.Sprite):
         dy = 0
 
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             dx += -10
             self.count += 1
             self.image = A_PLAYER_L[self.count % len(A_PLAYER_L)]
             self.left = True
-        elif keys[pygame.K_RIGHT]:
+        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             dx += 10
             self.count += 1
             self.image = A_PLAYER_R[self.count % len(A_PLAYER_R)]
