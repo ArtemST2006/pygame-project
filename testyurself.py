@@ -535,7 +535,7 @@ if __name__ == '__main__':
     background_animation_pole_x = 0
     background_animation_pole_y = 0
 
-    player, level_x, level_y, weight_map, = generate_level(load_level('map.txt'))
+    player, level_x, level_y, weight_map, = generate_level(load_level('test.txt'))
     left_border = player.rect.x
     right_border = weight_map * 50 - player.rect.x - 50
 
