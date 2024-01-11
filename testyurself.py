@@ -7,6 +7,41 @@ pygame.mixer.pre_init(44100, -16, 1, 512)  # для воспроизведени
 pygame.init()
 size = width, height = 1400, 750
 screen = pygame.display.set_mode(size)
+clock = pygame.time.Clock()
+FPS = 30
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def start_screen():
+    intro_text = ["ЗАСТАВКА", "",
+                  "Нажмите любую кнопку"]
+
+    fon = pygame.transform.scale(load_image('fon-1.png'), (screen.get_width(), screen.get_height()))
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 30)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 700 - intro_rect.width // 2
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(FPS)
 
 
 def check_hero(lis):
@@ -500,6 +535,7 @@ def make_zombie():
 
 
 if __name__ == '__main__':
+    start_screen()
     load_music('sounds/all_music_fon.mp3')
     death_ship_sound = load_sound_little('sounds/death_of_ship.ogg')
     jump_sound = load_sound_little('sounds/prijoc.ogg')
@@ -541,7 +577,7 @@ if __name__ == '__main__':
     right_border = weight_map * 50 - player.rect.x - 50
 
     camera = Camera()
-    clock = pygame.time.Clock()
+
     FPS = 30
     count = 0
     game = True
