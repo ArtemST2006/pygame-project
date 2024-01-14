@@ -17,12 +17,12 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
+    intro_text = ["PLACEHOLDER", "",
                   "Нажмите любую кнопку"]
 
     fon = pygame.transform.scale(load_image('fon-1.png'), (screen.get_width(), screen.get_height()))
     screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
+    font = pygame.font.Font(None, 50)
     text_coord = 50
     for line in intro_text:
         string_rendered = font.render(line, 1, pygame.Color('black'))
@@ -223,7 +223,7 @@ class Obstacles(pygame.sprite.Sprite):
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(all_sprites, player_sprite)
+        super().__init__(player_sprite)
         self.stop = pygame.transform.scale(load_image('stop_player.png'), (50, 46))
         self.image = self.stop
         self.rect = self.image.get_rect().move(x, y)
@@ -241,73 +241,74 @@ class Player(pygame.sprite.Sprite):
         self.count_star = 0
 
     def update(self):
-        if count == 0:
-            dx = 0
-            dy = 0
+        dx = 0
+        dy = 0
 
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-                dx += -10
-                self.count += 1
-                self.image = A_PLAYER_L[self.count % len(A_PLAYER_L)]
-                self.left = True
-            elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-                dx += 10
-                self.count += 1
-                self.image = A_PLAYER_R[self.count % len(A_PLAYER_R)]
-                self.left = False
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            dx += -10
+            self.count += 1
+            self.image = A_PLAYER_L[self.count % len(A_PLAYER_L)]
+            self.left = True
+        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            dx += 10
+            self.count += 1
+            self.image = A_PLAYER_R[self.count % len(A_PLAYER_R)]
+            self.left = False
+        else:
+            if self.left:
+                self.image = self.stop
             else:
-                if self.left:
-                    self.image = self.stop
-                else:
-                    self.image = pygame.transform.flip(self.stop, True, False)
+                self.image = pygame.transform.flip(self.stop, True, False)
 
-            self.jump += 3
-            if self.jump > 30:
-                self.jump = 30
-            dy += self.jump
+        self.jump += 3
+        if self.jump > 30:
+            self.jump = 30
+        dy += self.jump
 
-            for sprite in platform_sprites:
-                if sprite not in player_sprite:
-                    if sprite.rect.colliderect(self.rect.x + dx, self.rect.y, self.width,
-                                               self.height):
-                        dx = 0
-                    if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                        if self.jump < 0:
-                            dy = sprite.rect.bottom - self.rect.top
-                            self.jump = 0
-                        elif self.jump >= 0:
-                            self.count_jump = 0
-                            dy = sprite.rect.top - self.rect.bottom
-                            self.jumpfly = False
-
-            for sprite in gain_sprites:
-                if sprite.rect.colliderect(self.rect.x, self.rect.y, self.width, self.height):
-                    sprite.kill()
-                    self.is_gain = True
-                    self.count_gain = 0
-
-            for sprite in star_point:
-                if sprite.rect.colliderect(self.rect.x, self.rect.y, self.width, self.height):
-                    sprite.kill()
-                    self.count_star += 1
-
-            for sprite in bublic_sprites:
+        for sprite in platform_sprites:
+            if sprite not in player_sprite:
+                if sprite.rect.colliderect(self.rect.x + dx, self.rect.y, self.width,
+                                           self.height):
+                    dx = 0
                 if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                    death_ship_sound.play()
-                    create_particles('death', (sprite.rect.x, sprite.rect.y))
-                    game = False
+                    if self.jump < 0:
+                        dy = sprite.rect.bottom - self.rect.top
+                        self.jump = 0
+                    elif self.jump >= 0:
+                        self.count_jump = 0
+                        dy = sprite.rect.top - self.rect.bottom
+                        self.jumpfly = False
+                        self.jump = 0
 
-            if self.is_gain:
-                self.count_gain += 1
-            if self.count_gain > 200:
-                self.is_gain = False
+        for sprite in gain_sprites:
+            if sprite.rect.colliderect(self.rect.x, self.rect.y, self.width, self.height):
+                sprite.kill()
+                self.is_gain = True
                 self.count_gain = 0
 
-            self.rect.x += dx
-            self.rect.y += dy
+        for sprite in star_point:
+            if sprite.rect.colliderect(self.rect.x, self.rect.y, self.width, self.height):
+                sprite.kill()
+                self.count_star += 1
 
-            self.camera(dx)
+        for sprite in bublic_sprites:
+            if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                death_ship_sound.play()
+                create_particles('death', (sprite.rect.x, sprite.rect.y))
+                game = False
+
+        if self.is_gain:
+            self.count_gain += 1
+        if self.count_gain > 200:
+            self.is_gain = False
+            self.count_gain = 0
+
+        self.rect.x += dx
+        self.rect.y += dy
+
+        self.camera(dx)
+        print(self.rect.y)
 
     def camera(self, dx):
         global left_border, right_border
@@ -542,6 +543,7 @@ if __name__ == '__main__':
     game_won = load_sound_little('sounds/game-won.ogg')
     play_music(1)
 
+    LEVELS = ["map.txt", "test_map.txt"]
     BLOCK = {'ship': 'ship.png', 'trava': 'trava.png',
              'zelma': 'zelma.png', '5': 'gain/big_jump.png',
              '1': 'star.png', 'push': 'pusha/push.png',
@@ -571,27 +573,27 @@ if __name__ == '__main__':
     background_animation = 0
     background_animation_pole_x = 0
     background_animation_pole_y = 0
-
     player, level_x, level_y, weight_map, = generate_level(load_level('test_map.txt'))
     left_border = player.rect.x
     right_border = weight_map * 50 - player.rect.x - 50
 
     camera = Camera()
 
-    FPS = 30
+    current_level_index = 0
     count = 0
     game = True
     running = True
     while running:
         # установка флага
         if (pygame.sprite.spritecollideany(player, obstacles_sprites) or
-                pygame.sprite.spritecollideany(player, enemy_sprites)) and game:
+                pygame.sprite.spritecollideany(player, enemy_sprites)) and game:  # смерть
             death_ship_sound.play()
             player.kill()
             game = False
             create_particles('death', (player.rect.x, player.rect.y))
             count = 0
-        if pygame.sprite.spritecollideany(player, win_pos) and game:
+        if pygame.sprite.spritecollideany(player, win_pos) and game:  # прохождение уровня
+            current_level_index += 1
             game_won.play()
             player.kill()
             game = False
@@ -647,28 +649,28 @@ if __name__ == '__main__':
         camera.dx = 0
         if not game:
             count += 1
-            if count > 30:  # выход меню
+            if count > 30:
                 screen.fill((0, 0, 0))
-                all_sprites = pygame.sprite.Group()  # все спрайты
-                player_sprite = pygame.sprite.Group()  # игрок
-                platform_sprites = pygame.sprite.Group()  # поверхности
-                obstacles_sprites = pygame.sprite.Group()  # препятствия
-                enemy_sprites = pygame.sprite.Group()  # враги
-                zombie_sprites = pygame.sprite.Group()  # зомби
-                bublic_sprites = pygame.sprite.Group()  # бублик враг
-                puska_sprites = pygame.sprite.Group()  # пушка
+                all_sprites = pygame.sprite.Group()
+                player_sprite = pygame.sprite.Group()
+                platform_sprites = pygame.sprite.Group()
+                obstacles_sprites = pygame.sprite.Group()
+                enemy_sprites = pygame.sprite.Group()
+                zombie_sprites = pygame.sprite.Group()
+                bublic_sprites = pygame.sprite.Group()
+                puska_sprites = pygame.sprite.Group()
                 pulki = pygame.sprite.Group()
-                death = pygame.sprite.Group()  # star
+                death = pygame.sprite.Group()
                 win_pos = pygame.sprite.Group()
                 star_point = pygame.sprite.Group()
-                gain_sprites = pygame.sprite.Group()  # все усиления
+                gain_sprites = pygame.sprite.Group()
                 gain_big_jump = pygame.sprite.Group()
+                player, level_x, level_y, weight_map, = generate_level(load_level(LEVELS[current_level_index]))
 
-                player, level_x, level_y, weight_map, = generate_level(load_level('test_map.txt'))
-                print(platform_sprites)
                 count = 0
                 game = True
-
+        player_sprite.update()
+        player_sprite.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
     pygame.display.quit()
