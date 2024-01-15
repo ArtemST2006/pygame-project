@@ -20,8 +20,10 @@ def start_screen():
     intro_text = ["PLACEHOLDER",
                   "Нажмите любую кнопку"]
 
-    fon = pygame.transform.scale(load_image('fon-1.png'), (screen.get_width(), screen.get_height()))
-    screen.blit(fon, (0, 0))
+    fon_1 = load_image('fon-1.png')
+    fon_2 = load_image('fon-2.png')
+    screen.blit(fon_1, (0, 0))
+    screen.blit(fon_2, (0, 0))
     font = pygame.font.Font(None, 50)
     text_coord = 50
     for line in intro_text:
@@ -49,8 +51,10 @@ def end_screen():
     intro_text = ["PLACEHOLDER",
                   "Вы прошли все уровни игры (на данный момент).", "Поздравляем!"]
 
-    fon = pygame.transform.scale(load_image('fon-1.png'), (screen.get_width(), screen.get_height()))
-    screen.blit(fon, (0, 0))
+    fon_1 = load_image('fon-1.png')
+    fon_2 = load_image('fon-2.png')
+    screen.blit(fon_1, (0, 0))
+    screen.blit(fon_2, (0, 0))
     font = pygame.font.Font(None, 50)
     text_coord = 50
     for line in intro_text:
@@ -692,8 +696,8 @@ if __name__ == '__main__':
                 gain_big_jump = pygame.sprite.Group()
                 try:
                     player, level_x, level_y, weight_map, = generate_level(load_level(LEVELS[current_level_index]))
-
                 except IndexError:
+                    end_screen()
                     break
                 fon_1 = load_image('fon-1.png')
                 fon_2 = load_image('fon-2.png')
@@ -707,5 +711,4 @@ if __name__ == '__main__':
                 game = True
         pygame.display.flip()
         clock.tick(FPS)
-    end_screen()
     pygame.display.quit()
