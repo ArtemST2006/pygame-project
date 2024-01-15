@@ -313,7 +313,7 @@ class Player(pygame.sprite.Sprite):
     def camera(self, dx):
         global left_border, right_border
         left_border += dx
-        right_border += dx
+        right_border -= dx
 
         if left_border <= 700 or right_border <= 700:
             self.camera_fixed = False
@@ -667,9 +667,17 @@ if __name__ == '__main__':
                 gain_big_jump = pygame.sprite.Group()
                 try:
                     player, level_x, level_y, weight_map, = generate_level(load_level(LEVELS[current_level_index]))
+
                 except IndexError:
                     current_level_index -= 1
                     player, level_x, level_y, weight_map, = generate_level(load_level(LEVELS[current_level_index]))
+                fon_1 = load_image('fon-1.png')
+                fon_2 = load_image('fon-2.png')
+                background_animation = 0
+                background_animation_pole_x = 0
+                background_animation_pole_y = 0
+                left_border = player.rect.x
+                right_border = weight_map * 50 - player.rect.x - 50
 
                 count = 0
                 game = True
