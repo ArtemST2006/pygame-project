@@ -46,7 +46,6 @@ def start_screen():
         clock.tick(FPS)
 
 
-
 def end_screen():
     intro_text = ["PLACEHOLDER",
                   "Вы прошли все уровни игры (на данный момент).", "Поздравляем!"]
@@ -82,6 +81,7 @@ def check_hero(lis):
 
 
 def generate_level(level):
+    #  создаём карту
     level.reverse()
     hero_y = len(level) - check_hero(level)
     new_player, x, y = None, None, None
@@ -149,6 +149,7 @@ def load_level(filename):
 
 
 def load_image(name, colorkey=None):
+    #  присваиваем картинки
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
@@ -166,6 +167,7 @@ def load_image(name, colorkey=None):
 
 
 def load_sound_little(name):
+    #  звуки действий
     try:
         fullname = os.path.join('data', name)
         if not os.path.isfile(fullname):
@@ -178,6 +180,7 @@ def load_sound_little(name):
 
 
 def load_music(name):
+    #  музыкальное сопровождение
     try:
         fullname = os.path.join('data', name)
         if not os.path.isfile(fullname):
@@ -190,6 +193,7 @@ def load_music(name):
 
 
 def play_music(k):
+    #  определяем какой именно звук нужен
     if k == 1:
         pygame.mixer.music.play(-1)
         pygame.mixer.music.set_volume(0.5)
@@ -202,6 +206,7 @@ def play_music(k):
 
 
 def create_particles(k, position):
+    #  создаём звёзды для звёздочной системы
     particle_count = 20
     numbers = range(-10, 15)
     for _ in range(particle_count):
@@ -243,6 +248,7 @@ class Particle(pygame.sprite.Sprite):
 
 
 class Obstacles(pygame.sprite.Sprite):
+    #  класс прептствий
     def __init__(self, name, x, y):
         super().__init__(all_sprites, obstacles_sprites)
         self.image = load_image(BLOCK[name])
@@ -252,6 +258,7 @@ class Obstacles(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
+    #  класс игрока
     def __init__(self, x, y):
         super().__init__(player_sprite, all_sprites)
         self.stop = pygame.transform.scale(load_image('stop_player.png'), (50, 46))
@@ -293,11 +300,13 @@ class Player(pygame.sprite.Sprite):
                 else:
                     self.image = pygame.transform.flip(self.stop, True, False)
 
+            #  гравитация
             self.jump += 3
             if self.jump > 30:
                 self.jump = 30
             dy += self.jump
 
+            #  отслеживаем не сталкнётся ли игрок с землёй
             for sprite in platform_sprites:
                 if sprite not in player_sprite:
                     if sprite.rect.colliderect(self.rect.x + dx, self.rect.y, self.width,
@@ -312,6 +321,7 @@ class Player(pygame.sprite.Sprite):
                             dy = sprite.rect.top - self.rect.bottom
                             self.jumpfly = False
 
+            #  отслеживаем столкновение с звёздочками уилениями и бубликом
             for sprite in gain_sprites:
                 if sprite.rect.colliderect(self.rect.x, self.rect.y, self.width, self.height):
                     sprite.kill()
@@ -326,6 +336,8 @@ class Player(pygame.sprite.Sprite):
             for sprite in bublic_sprites:
                 if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                     death_ship_sound.play()
+                    sprite.kill()
+                    self.jump = -10
                     create_particles('death', (sprite.rect.x, sprite.rect.y))
                     game = False
 
@@ -341,6 +353,7 @@ class Player(pygame.sprite.Sprite):
             self.camera(dx)
 
     def camera(self, dx):
+        #  определяем, нужно ли движение камеры
         global left_border, right_border
         left_border += dx
         right_border -= dx
@@ -355,6 +368,7 @@ class Player(pygame.sprite.Sprite):
 
 
 class EnemyZombie(pygame.sprite.Sprite):
+    #  класс зомбиков
     def __init__(self, x, y):
         super().__init__(enemy_sprites, all_sprites, zombie_sprites)
         self.count = 0
@@ -409,6 +423,7 @@ class EnemyZombie(pygame.sprite.Sprite):
 
 
 class EnemyBublic(pygame.sprite.Sprite):
+    #  кдасс бублика
     def __init__(self, x, y):
         super().__init__(all_sprites, enemy_sprites, bublic_sprites)
         self.image = pygame.transform.scale(load_image(BLOCK['bublic']), (50, 50))
@@ -433,6 +448,7 @@ class EnemyBublic(pygame.sprite.Sprite):
 
 
 class EnemyPush(pygame.sprite.Sprite):
+    #   класс пушки
     def __init__(self, x, y, name):
         super().__init__(enemy_sprites, all_sprites)
         self.dx = 0
@@ -466,6 +482,7 @@ class EnemyPush(pygame.sprite.Sprite):
 
 
 class Pulka(pygame.sprite.Sprite):
+    #  отдельный класс пульки
     def __init__(self, x, y, dx, dy):
         super().__init__(enemy_sprites, pulki)
         self.dx = dx
@@ -484,6 +501,7 @@ class Pulka(pygame.sprite.Sprite):
 
 
 class Platform(pygame.sprite.Sprite):
+    #  поверхности
     def __init__(self, x, y, name):
         super().__init__(platform_sprites, all_sprites)
         self.image = load_image(BLOCK[name])
@@ -656,6 +674,7 @@ if __name__ == '__main__':
             if not background_animation_pole_y - 1 <= -10:
                 background_animation_pole_y -= 1
 
+        #  движение заднего фона
         screen.blit(fon_1, (background_animation_pole_x, background_animation_pole_y))
         screen.blit(fon_1, (background_animation_pole_x + 1400, background_animation_pole_y))
         screen.blit(fon_2, (background_animation, 0))
@@ -676,7 +695,7 @@ if __name__ == '__main__':
         pulki.draw(screen)
         all_sprites.draw(screen)
         camera.dx = 0
-        if not game:
+        if not game:  # если игрок умер или прошёл
             count += 1
             if count > 30:
                 screen.fill((0, 0, 0))
