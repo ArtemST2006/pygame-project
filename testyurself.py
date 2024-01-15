@@ -17,7 +17,7 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ["PLACEHOLDER", "",
+    intro_text = ["PLACEHOLDER",
                   "Нажмите любую кнопку"]
 
     fon = pygame.transform.scale(load_image('fon-1.png'), (screen.get_width(), screen.get_height()))
@@ -40,6 +40,32 @@ def start_screen():
             elif event.type == pygame.KEYDOWN or \
                     event.type == pygame.MOUSEBUTTONDOWN:
                 return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+
+def end_screen():
+    intro_text = ["PLACEHOLDER",
+                  "Вы прошли все уровни игры (на данный момент).", "Поздравляем!"]
+
+    fon = pygame.transform.scale(load_image('fon-1.png'), (screen.get_width(), screen.get_height()))
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 50)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 700 - intro_rect.width // 2
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -612,7 +638,6 @@ if __name__ == '__main__':
                         player.jump = -30
                     else:
                         player.jump = -20
-        print(left_border)
         x_fon = player.rect.x
         all_sprites.update()
 
@@ -669,8 +694,7 @@ if __name__ == '__main__':
                     player, level_x, level_y, weight_map, = generate_level(load_level(LEVELS[current_level_index]))
 
                 except IndexError:
-                    current_level_index -= 1
-                    player, level_x, level_y, weight_map, = generate_level(load_level(LEVELS[current_level_index]))
+                    break
                 fon_1 = load_image('fon-1.png')
                 fon_2 = load_image('fon-2.png')
                 background_animation = 0
@@ -683,4 +707,5 @@ if __name__ == '__main__':
                 game = True
         pygame.display.flip()
         clock.tick(FPS)
+    end_screen()
     pygame.display.quit()
