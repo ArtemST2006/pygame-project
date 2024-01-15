@@ -17,12 +17,14 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
+    intro_text = ["PLACEHOLDER",
                   "Нажмите любую кнопку"]
 
-    fon = pygame.transform.scale(load_image('fon-1.png'), (screen.get_width(), screen.get_height()))
-    screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
+    fon_1 = load_image('fon-1.png')
+    fon_2 = load_image('fon-2.png')
+    screen.blit(fon_1, (0, 0))
+    screen.blit(fon_2, (0, 0))
+    font = pygame.font.Font(None, 50)
     text_coord = 50
     for line in intro_text:
         string_rendered = font.render(line, 1, pygame.Color('black'))
@@ -40,6 +42,34 @@ def start_screen():
             elif event.type == pygame.KEYDOWN or \
                     event.type == pygame.MOUSEBUTTONDOWN:
                 return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+
+def end_screen():
+    intro_text = ["PLACEHOLDER",
+                  "Вы прошли все уровни игры (на данный момент).", "Поздравляем!"]
+
+    fon_1 = load_image('fon-1.png')
+    fon_2 = load_image('fon-2.png')
+    screen.blit(fon_1, (0, 0))
+    screen.blit(fon_2, (0, 0))
+    font = pygame.font.Font(None, 50)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 700 - intro_rect.width // 2
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -223,7 +253,7 @@ class Obstacles(pygame.sprite.Sprite):
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(all_sprites, player_sprite)
+        super().__init__(player_sprite, all_sprites)
         self.stop = pygame.transform.scale(load_image('stop_player.png'), (50, 46))
         self.image = self.stop
         self.rect = self.image.get_rect().move(x, y)
@@ -241,6 +271,7 @@ class Player(pygame.sprite.Sprite):
         self.count_star = 0
 
     def update(self):
+        global count
         if count == 0:
             dx = 0
             dy = 0
@@ -542,6 +573,7 @@ if __name__ == '__main__':
     game_won = load_sound_little('sounds/game-won.ogg')
     play_music(1)
 
+    LEVELS = ["test_map.txt", "map.txt"]
     BLOCK = {'ship': 'ship.png', 'trava': 'trava.png',
              'zelma': 'zelma.png', '5': 'gain/big_jump.png',
              '1': 'star.png', 'push': 'pusha/push.png',
@@ -571,27 +603,27 @@ if __name__ == '__main__':
     background_animation = 0
     background_animation_pole_x = 0
     background_animation_pole_y = 0
-
-    player, level_x, level_y, weight_map, = generate_level(load_level('test_map.txt'))
+    player, level_x, level_y, weight_map, = generate_level(load_level(LEVELS[0]))
     left_border = player.rect.x
     right_border = weight_map * 50 - player.rect.x - 50
 
     camera = Camera()
 
-    FPS = 30
-    count = 0
+    current_level_index = 0
     game = True
     running = True
+    count = 0
     while running:
         # установка флага
         if (pygame.sprite.spritecollideany(player, obstacles_sprites) or
-                pygame.sprite.spritecollideany(player, enemy_sprites)) and game:
+                pygame.sprite.spritecollideany(player, enemy_sprites)) and game:  # смерть
             death_ship_sound.play()
             player.kill()
             game = False
             create_particles('death', (player.rect.x, player.rect.y))
             count = 0
-        if pygame.sprite.spritecollideany(player, win_pos) and game:
+        if pygame.sprite.spritecollideany(player, win_pos) and game:  # прохождение уровня
+            current_level_index += 1
             game_won.play()
             player.kill()
             game = False
@@ -610,7 +642,6 @@ if __name__ == '__main__':
                         player.jump = -30
                     else:
                         player.jump = -20
-
         x_fon = player.rect.x
         all_sprites.update()
 
@@ -647,28 +678,37 @@ if __name__ == '__main__':
         camera.dx = 0
         if not game:
             count += 1
-            if count > 30:  # выход меню
+            if count > 30:
                 screen.fill((0, 0, 0))
-                all_sprites = pygame.sprite.Group()  # все спрайты
-                player_sprite = pygame.sprite.Group()  # игрок
-                platform_sprites = pygame.sprite.Group()  # поверхности
-                obstacles_sprites = pygame.sprite.Group()  # препятствия
-                enemy_sprites = pygame.sprite.Group()  # враги
-                zombie_sprites = pygame.sprite.Group()  # зомби
-                bublic_sprites = pygame.sprite.Group()  # бублик враг
-                puska_sprites = pygame.sprite.Group()  # пушка
+                all_sprites = pygame.sprite.Group()
+                player_sprite = pygame.sprite.Group()
+                platform_sprites = pygame.sprite.Group()
+                obstacles_sprites = pygame.sprite.Group()
+                enemy_sprites = pygame.sprite.Group()
+                zombie_sprites = pygame.sprite.Group()
+                bublic_sprites = pygame.sprite.Group()
+                puska_sprites = pygame.sprite.Group()
                 pulki = pygame.sprite.Group()
-                death = pygame.sprite.Group()  # star
+                death = pygame.sprite.Group()
                 win_pos = pygame.sprite.Group()
                 star_point = pygame.sprite.Group()
-                gain_sprites = pygame.sprite.Group()  # все усиления
+                gain_sprites = pygame.sprite.Group()
                 gain_big_jump = pygame.sprite.Group()
+                try:
+                    player, level_x, level_y, weight_map, = generate_level(load_level(LEVELS[current_level_index]))
+                except IndexError:
+                    end_screen()
+                    break
+                fon_1 = load_image('fon-1.png')
+                fon_2 = load_image('fon-2.png')
+                background_animation = 0
+                background_animation_pole_x = 0
+                background_animation_pole_y = 0
+                left_border = player.rect.x
+                right_border = weight_map * 50 - player.rect.x - 50
 
-                player, level_x, level_y, weight_map, = generate_level(load_level('test_map.txt'))
-                print(platform_sprites)
                 count = 0
                 game = True
-
         pygame.display.flip()
         clock.tick(FPS)
     pygame.display.quit()
