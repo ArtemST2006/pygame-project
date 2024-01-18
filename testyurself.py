@@ -135,6 +135,10 @@ def generate_level(level):
                 except Exception:
                     pass
 
+            elif level[y][x] == '%':
+                CircularSaw(x * 50, 750 - (y * 50))
+
+
     return new_player, x, y, len(max(level, key=len))
 
 
@@ -514,6 +518,50 @@ class Win(pygame.sprite.Sprite):
         self.image = load_image(BLOCK['flag'])
         self.image = pygame.transform.scale(self.image, (50, 50))
         self.rect = self.image.get_rect().move(x, y)
+
+
+class CircularSaw(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(all_sprites, enemy_sprites)
+        self.lis_image = [pygame.transform.scale(load_image('Circularca/1.png'), (50, 50)),
+                          pygame.transform.scale(load_image('Circularca/2.png'), (50, 50)),
+                          pygame.transform.scale(load_image('Circularca/3.png'), (50, 50)),
+                          pygame.transform.scale(load_image('Circularca/4.png'), (50, 50)),
+                          pygame.transform.scale(load_image('Circularca/5.png'), (50, 50))]
+        self.image = self.lis_image[0]
+
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect = self.image.get_rect().move(x, y)
+
+        self.count = 0
+        self.delay = 0
+        self.flag = True
+
+    def update(self):
+        if self.flag:
+            dy = -6
+        else:
+            dy = 6
+
+        self.count += 1
+        self.image = self.lis_image[self.count % 5]
+
+        if self.delay == 0:
+            for sprite in platform_sprites:
+                if sprite.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                    if self.flag:
+                        dy = sprite.rect.bottom - self.rect.top
+                    else:
+                        dy = sprite.rect.top - self.rect.bottom
+
+                    self.flag = not self.flag
+
+                    self.delay = -10
+            self.rect.y += dy
+        else:
+            self.delay += 1
+
 
 
 class Gain(pygame.sprite.Sprite):
