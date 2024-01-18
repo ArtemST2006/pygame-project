@@ -83,60 +83,62 @@ def check_hero(lis):
 def generate_level(level):
     #  создаём карту
     level.reverse()
-    hero_y = len(level) - check_hero(level)
     new_player, x, y = None, None, None
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '@':
-                new_player = Player(x * 50, 750 - (y * 50))
+    try:
+        for y in range(len(level)):
+            for x in range(len(level[y])):
+                if level[y][x] == '@':
+                    new_player = Player(x * 50, 750 - (y * 50))
 
-            elif level[y][x] == '#':
-                try:
-                    if level[y + 1][x] != '#' or level[y + 1][x] == '*':
-                        Platform(x * 50, 750 - (y * 50), 'trava')
-                    else:
+                elif level[y][x] == '#':
+                    try:
+                        if level[y + 1][x] != '#' or level[y + 1][x] == '*':
+                            Platform(x * 50, 750 - (y * 50), 'trava')
+                        else:
+                            Platform(x * 50, 750 - (y * 50), 'zelma')
+                    except Exception:
                         Platform(x * 50, 750 - (y * 50), 'zelma')
-                except Exception:
-                    Platform(x * 50, 750 - (y * 50), 'zelma')
 
-            elif level[y][x] == '*':
-                Obstacles('ship', x * 50, 750 - (y * 50))
+                elif level[y][x] == '*':
+                    Obstacles('ship', x * 50, 750 - (y * 50))
 
-            elif level[y][x] == '!':
-                EnemyZombie(x * 50, 750 - (y * 50))
+                elif level[y][x] == '!':
+                    EnemyZombie(x * 50, 750 - (y * 50))
 
-            elif level[y][x] == '0':
-                EnemyBublic(x * 50, 750 - (y * 50))
+                elif level[y][x] == '0':
+                    EnemyBublic(x * 50, 750 - (y * 50))
 
-            elif level[y][x] == '+':
-                Win(x * 50, 750 - (y * 50))
+                elif level[y][x] == '+':
+                    Win(x * 50, 750 - (y * 50))
 
-            elif level[y][x] == '5':
-                Gain(x * 50, 750 - (y * 50), level[y][x])
+                elif level[y][x] == '5':
+                    Gain(x * 50, 750 - (y * 50), level[y][x])
 
-            elif level[y][x] == '1':
-                Star(x * 50, 750 - (y * 50), level[y][x])
+                elif level[y][x] == '1':
+                    Star(x * 50, 750 - (y * 50), level[y][x])
 
-            elif level[y][x] == '&':
-                try:
-                    if level[y][x - 1] == '#':
-                        EnemyPush(x * 50, 750 - (y * 50), 'right')
-                    else:
-                        EnemyPush(x * 50, 750 - (y * 50), 'left')
-                except Exception:
-                    pass
+                elif level[y][x] == '&':
+                    try:
+                        if level[y][x - 1] == '#':
+                            EnemyPush(x * 50, 750 - (y * 50), 'right')
+                        else:
+                            EnemyPush(x * 50, 750 - (y * 50), 'left')
+                    except Exception:
+                        pass
 
-            elif level[y][x] == '^':
-                try:
-                    if level[y + 1][x] == '#':
-                        EnemyPush(x * 50, 750 - (y * 50), 'botton')
-                    else:
-                        EnemyPush(x * 50, 750 - (y * 50), 'top')
-                except Exception:
-                    pass
+                elif level[y][x] == '^':
+                    try:
+                        if level[y + 1][x] == '#':
+                            EnemyPush(x * 50, 750 - (y * 50), 'botton')
+                        else:
+                            EnemyPush(x * 50, 750 - (y * 50), 'top')
+                    except Exception:
+                        pass
 
-            elif level[y][x] == '%':
-                CircularSaw(x * 50, 750 - (y * 50))
+                elif level[y][x] == '%':
+                    CircularSaw(x * 50, 750 - (y * 50))
+    except Exception:
+        pass
 
 
     return new_player, x, y, len(max(level, key=len))
@@ -639,7 +641,7 @@ if __name__ == '__main__':
     game_won = load_sound_little('sounds/game-won.ogg')
     play_music(1)
 
-    LEVELS = ["test_map.txt", "map.txt"]
+    LEVELS = ['level3.txt', "test_map.txt", "map.txt"]
     BLOCK = {'ship': 'ship.png', 'trava': 'trava.png',
              'zelma': 'zelma.png', '5': 'gain/big_jump.png',
              '1': 'star.png', 'push': 'pusha/push.png',
