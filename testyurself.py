@@ -16,6 +16,10 @@ def terminate():
     sys.exit()
 
 
+def get_level():
+    return os.listdir('data/LEVELS')
+
+
 def start_screen():
     intro_text = ["PLACEHOLDER",
                   "Нажмите любую кнопку"]
@@ -145,7 +149,7 @@ def generate_level(level):
 
 
 def load_level(filename):
-    filename = "data/" + filename
+    filename = "data/LEVELS/" + filename
     with open(filename, 'r') as mapFile:
         level_map = [line for line in mapFile]
     # подсчитываем максимальную длину
@@ -641,7 +645,7 @@ if __name__ == '__main__':
     game_won = load_sound_little('sounds/game-won.ogg')
     play_music(1)
 
-    LEVELS = ['level3.txt', "test_map.txt", "map.txt"]
+    LEVELS = get_level()
     BLOCK = {'ship': 'ship.png', 'trava': 'trava.png',
              'zelma': 'zelma.png', '5': 'gain/big_jump.png',
              '1': 'star.png', 'push': 'pusha/push.png',
